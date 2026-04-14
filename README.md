@@ -13,11 +13,13 @@ cp .env.example .env   # fill in your key
 ## Usage
 
 ```bash
-python main.py document.pdf            # infer rules + parse
-python main.py document.pdf --refresh  # re-run agent (ignore cached config)
+python main.py document.pdf                     # infer rules + parse
+python main.py document.pdf --refresh           # re-run agent (ignore cached config)
+python main.py document.pdf --no-body           # exclude body paragraphs from the LLM sample
+python main.py document.pdf --body-snippet 150  # truncate body text to 150 chars (default: 300)
 ```
 
-The agent generates `document.config.json` on first run and reuses it afterwards.
+The agent generates `outputs/document.config.json` on first run and reuses it afterwards.
 
 ## Providers
 
