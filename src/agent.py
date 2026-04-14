@@ -100,7 +100,7 @@ def infer_config(pdf_path: str, include_body: bool = True, body_snippet: int = 3
         f"[{i+1}] label={s['label']}, docling_level={s['docling_level']}, text=\"{s['text']}\""
         for i, s in enumerate(sample)
     )
-    prompt = USER_PROMPT.format(sample=sample_text)
+    prompt = USER_PROMPT.replace("{sample}", sample_text)
     llm_raw = _call_llm(prompt)
     config = _parse_json(llm_raw)
 
