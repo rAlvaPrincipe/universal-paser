@@ -6,7 +6,7 @@ An LLM agent infers document-specific rules once; subsequent runs are fully dete
 ## Setup
 
 ```bash
-pip install docling anthropic openai google-generativeai python-dotenv
+pip install docling openai google-generativeai python-dotenv
 cp .env.example .env   # fill in your key
 ```
 

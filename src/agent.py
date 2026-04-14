@@ -103,17 +103,6 @@ def _extract_sample(pdf_path: str, include_body: bool = True, body_snippet: int 
 def _call_llm(prompt: str) -> str:
     provider = os.getenv("LLM_PROVIDER", "anthropic").lower()
 
-    if provider == "anthropic":
-        import anthropic
-        client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-        resp = client.messages.create(
-            model=os.getenv("LLM_MODEL", "claude-opus-4-6"),
-            max_tokens=1024,
-            system=SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        return resp.content[0].text.strip()
-
     if provider == "openai":
         from openai import OpenAI
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
