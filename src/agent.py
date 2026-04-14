@@ -41,22 +41,38 @@ Infer the hierarchy rules. Output ONLY a valid JSON object with this structure:
 {{
   "domain": "brief description of domain and document type",
   "rules": [
-    {{"pattern": "text prefix or regex", "type": "prefix|regex", "depth": 0}},
+    {{"pattern": "...", "type": "prefix|regex", "depth": 0}},
     ...
   ],
   "notes": "any important observations"
 }}
 
-Guidelines:
-- depth 0 = top level (e.g. PART, CHAPTER, TITLE), increasing depth = more nested
-- "prefix" = case-insensitive prefix match; "regex" = full Python regex (re.IGNORECASE applied)
-- order rules from most specific to least specific
-- account for domain conventions:
+Rules for the "type" field — use ONLY these two values, nothing else:
+- "prefix"  → case-insensitive prefix match (e.g. pattern "chapter" matches "Chapter 3")
+- "regex"   → full Python regex, re.IGNORECASE applied (e.g. "^\\d+(\\.\\d+)*\\s")
+
+Rules for the "depth" field:
+- depth 0 = top-level heading (e.g. part, chapter, top-level section)
+- depth increases by 1 for each nesting level
+- for numeric dot notation derive depth from the number of dots: "1" → 0, "1.1" → 1, "1.1.1" → 2
+- every rule must have the correct depth; a subsection must never have the same depth as its parent
+
+Rules for coverage and noise:
+- include the document title (if present) as depth 0
+- include every structural heading level observed in the sample
+- EXCLUDE elements that are not content headings: page headers/footers, author lines,
+  conference/journal metadata, citation reference headers, copyright notices, ACM/IEEE
+  boilerplate, and any element that appears only once and reads like publisher metadata
+
+Ordering:
+- order rules from most specific to least specific (exact patterns before general regex)
+
+Domain conventions to follow when applicable:
     EU law        → CHAPTER > Section > Article > paragraph
     Academic      → numeric dot notation (1 > 1.1 > 1.1.1)
     Technical doc → Part > Chapter > Section > Subsection
     Corporate     → adapt to observed patterns
-- if docling_level varies meaningfully across elements, factor that in too
+- also use docling_level as a signal when it varies meaningfully across elements
 """
 
 
