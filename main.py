@@ -11,11 +11,10 @@ from src.doc_parser import build_tree, print_tree
 def main():
     args = sys.argv[1:]
     if not args or args[0] in ("-h", "--help"):
-        print("Usage: python main.py <pdf_path> [--refresh] [--no-body] [--body-snippet N]")
+        print("Usage: python main.py <pdf_path> [--no-body] [--body-snippet N]")
         sys.exit(0)
 
     pdf_path = args[0]
-    force = "--refresh" in args
     include_body = "--no-body" not in args
 
     body_snippet = 300
@@ -27,7 +26,7 @@ def main():
         print(f"Error: file not found: {pdf_path}")
         sys.exit(1)
 
-    config = get_config(pdf_path, force=force, include_body=include_body, body_snippet=body_snippet)
+    config = get_config(pdf_path, include_body=include_body, body_snippet=body_snippet)
     roots = build_tree(pdf_path, config)
     print_tree(roots)
 

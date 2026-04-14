@@ -9,27 +9,21 @@ La soluzione è separare due responsabilità:
 1. **Inferenza** — un LLM osserva il documento e deduce le regole gerarchiche specifiche per quel documento
 2. **Parsing** — uno script deterministico applica quelle regole a tutto il documento
 
-L'inferenza avviene una sola volta e il risultato viene cachato. Il parsing è sempre deterministico e gratuito.
+L'inferenza avviene ad ogni esecuzione. Il parsing è sempre deterministico.
 
 ---
 
 ## Architettura
 
 ```
-                    prima esecuzione
-                   ┌─────────────────────────────────────────┐
-                   │                                         │
-  document.pdf ──► docling ──► elementi strutturali + body ──► LLM
-                                                              │
-                                                              ▼
-                                                    outputs/document.config.json
-                   └─────────────────────────────────────────┘
-
                     ogni esecuzione
-                   ┌──────────────────────────────────────────────────┐
-                   │                                                  │
-  document.pdf ──► docling ──► tutti gli elementi ──► match su config ──► Node tree ──► stampa
-                   └──────────────────────────────────────────────────┘
+                   ┌──────────────────────────────────────────────────────────────────────────┐
+                   │                                                                          │
+  document.pdf ──► docling ──► elementi strutturali + body ──► LLM ──► config               │
+                   │                                                       │                 │
+                   └───────────────────────────────────────────────────────┼─────────────────┘
+                                                                           │
+                   document.pdf ──► docling ──► tutti gli elementi ──► match su config ──► Node tree ──► stampa
 ```
 
 ---
@@ -61,7 +55,7 @@ Gli elementi strutturali vengono passati integralmente. Il testo body viene tron
 
 ### Cosa produce l'LLM
 
-Un oggetto JSON con le regole di gerarchia, salvato in `outputs/`:
+Un oggetto JSON con le regole di gerarchia:
 
 ```json
 {
@@ -77,9 +71,17 @@ Un oggetto JSON con le regole di gerarchia, salvato in `outputs/`:
 
 Il campo `domain` descrive la natura del documento. L'LLM lo usa internamente per applicare convenzioni di settore (diritto EU, paper accademico, ecc.) prima di definire le regole. Le `rules` sono ordinate dalla più specifica alla meno specifica: vince la prima che matcha.
 
-### Caching
+### Run log
 
-Il config viene salvato in `outputs/<nome_pdf>.config.json`. Nelle esecuzioni successive viene caricato direttamente — nessuna chiamata LLM, nessun costo. Per forzare una nuova inferenza: `--refresh`.
+Ogni esecuzione salva i dati transitori in `runs/<nome_pdf>_<timestamp>/`:
+
+| File | Contenuto |
+|---|---|
+| `meta.json` | provider, model, opzioni usate, timestamp |
+| `sample.json` | elementi estratti da docling passati all'LLM |
+| `prompt.txt` | system prompt + user prompt completo |
+| `llm_raw.txt` | risposta grezza dell'LLM prima del parsing |
+| `config.json` | JSON parsato finale |
 
 ---
 
@@ -137,9 +139,12 @@ class Node:
 ├── main.py                  # entry point
 ├── src/
 │   ├── agent.py             # fase 1: inferenza LLM
-│   └── doc_parser.py        # fase 2: parsing deterministico
+│   ├── doc_parser.py        # fase 2: parsing deterministico
+│   └── prompts/
+│       ├── system.txt       # system prompt
+│       └── user.txt         # user prompt (placeholder: {sample})
 ├── data/                    # PDF di input (gitignored)
-├── outputs/                 # config JSON generati (gitignored)
+├── runs/                    # log per ogni run (gitignored)
 ├── .env                     # chiavi API (gitignored)
 └── .env.example             # template
 ```
@@ -151,7 +156,6 @@ class Node:
 ```
 python main.py <pdf> [opzioni]
 
-  --refresh          forza re-inferenza anche se il config esiste
   --no-body          passa all'LLM solo gli elementi strutturali (no body text)
   --body-snippet N   tronca il body a N caratteri per elemento (default: 300)
 ```

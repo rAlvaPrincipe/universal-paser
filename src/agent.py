@@ -125,25 +125,10 @@ def infer_config(pdf_path: str, include_body: bool = True, body_snippet: int = 3
     return config
 
 
-OUTPUTS_DIR = Path(__file__).parent.parent / "outputs"
-
-
-def get_config(pdf_path: str, force: bool = False, include_body: bool = True, body_snippet: int = 300) -> dict:
-    OUTPUTS_DIR.mkdir(exist_ok=True)
-    config_path = OUTPUTS_DIR / (Path(pdf_path).stem + ".config.json")
-
-    if config_path.exists() and not force:
-        with open(config_path) as f:
-            return json.load(f)
-
+def get_config(pdf_path: str, include_body: bool = True, body_snippet: int = 300) -> dict:
     print(f"[agent] Inferring structure: {pdf_path}")
     config = infer_config(pdf_path, include_body=include_body, body_snippet=body_snippet)
-
-    with open(config_path, "w") as f:
-        json.dump(config, f, indent=2)
-
     print(f"[agent] Domain  : {config['domain']}")
     if config.get("notes"):
         print(f"[agent] Notes   : {config['notes']}")
-    print(f"[agent] Config  → {config_path}")
     return config
