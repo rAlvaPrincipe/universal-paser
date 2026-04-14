@@ -25,6 +25,8 @@ Rules for the "depth" field:
 Rules for coverage and noise:
 - include the document title (if present) as depth 0
 - include every structural heading level observed in the sample
+- after writing your rules, mentally check: does every element with label=section_header
+  in the sample match at least one rule? if not, add the missing rules
 - EXCLUDE elements that are not content headings: page headers/footers, author lines,
   conference/journal metadata, citation reference headers, copyright notices, ACM/IEEE
   boilerplate, and any element that appears only once and reads like publisher metadata
@@ -33,8 +35,9 @@ Ordering:
 - order rules from most specific to least specific (exact patterns before general regex)
 
 Domain conventions to follow when applicable:
-    EU law        → CHAPTER > Section > Article > paragraph
-    Academic      → numeric dot notation (1 > 1.1 > 1.1.1)
-    Technical doc → Part > Chapter > Section > Subsection
-    Corporate     → adapt to observed patterns
+    EU legislation  → CHAPTER > Section > Article > paragraph
+    EU case law     → top sections (Legal context, Judgment, Consideration of the questions referred…) > sub-questions (The first question, The second question…) > numbered paragraphs
+    Academic        → numeric dot notation (1 > 1.1 > 1.1.1)
+    Technical doc   → Part > Chapter > Section > Subsection
+    Corporate       → adapt to observed patterns
 - also use docling_level as a signal when it varies meaningfully across elements
