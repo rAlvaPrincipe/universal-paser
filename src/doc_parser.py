@@ -8,6 +8,7 @@ from docling.document_converter import DocumentConverter, PdfFormatOption
 from docling.datamodel.pipeline_options import PdfPipelineOptions
 
 STRUCTURAL = {"section_header", "title", "chapter", "page_header"}
+BODY_LABELS = {"text", "paragraph", "list_item", "caption", "footnote"}
 
 
 @dataclass
@@ -16,6 +17,7 @@ class Node:
     label: str
     depth: int
     children: list = field(default_factory=list)
+    body: list = field(default_factory=list)
 
     def all_text(self) -> str:
         """Text of this node + all descendants. Ready for graph generation."""
@@ -48,29 +50,34 @@ def build_tree(pdf_path: str, config: dict) -> list[Node]:
     roots: list[Node] = []
     stack: list[tuple[int, Node]] = []
 
+    current_node: Node | None = None
+
     for item, _ in doc.iterate_items():
         label = item.label.value if hasattr(item.label, "value") else str(item.label)
-        if label not in STRUCTURAL:
-            continue
         text = item.text.strip().replace("\n", " ") if getattr(item, "text", None) else ""
         if not text:
             continue
 
-        depth = _match_depth(text, rules)
-        if depth is None:
-            continue
+        if label in STRUCTURAL:
+            depth = _match_depth(text, rules)
+            if depth is None:
+                continue
 
-        node = Node(text=text, label=label, depth=depth)
+            node = Node(text=text, label=label, depth=depth)
 
-        while stack and stack[-1][0] >= depth:
-            stack.pop()
+            while stack and stack[-1][0] >= depth:
+                stack.pop()
 
-        if stack:
-            stack[-1][1].children.append(node)
-        else:
-            roots.append(node)
+            if stack:
+                stack[-1][1].children.append(node)
+            else:
+                roots.append(node)
 
-        stack.append((depth, node))
+            stack.append((depth, node))
+            current_node = node
+
+        elif label in BODY_LABELS and current_node is not None:
+            current_node.body.append(text)
 
     return roots
 

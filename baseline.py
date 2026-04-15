@@ -45,6 +45,36 @@ Here is the text extracted from the PDF:
 Produce the hierarchical tree of this document.\
 """
 
+SYSTEM_PROMPT_CONFIG = """\
+You are an expert document analyst.
+Given the full text of a document, identify every structural heading and return ONLY a valid JSON array.
+No explanation, no markdown fences — raw JSON only.\
+"""
+
+USER_PROMPT_CONFIG = """\
+Here is the text extracted from the PDF:
+
+{text}
+
+List every structural heading in document order. Output ONLY a valid JSON array:
+[
+  {{"text": "exact heading text as it appears in the document", "depth": 0}},
+  ...
+]
+
+Rules for "depth":
+- depth 0 = top-level (document title, part, chapter, top-level section)
+- depth increases by 1 for each nesting level
+- for numeric dot notation: "1 Introduction" → 0, "1.1 Syntax" → 1, "1.1.1 Details" → 2
+
+Rules for "text":
+- copy the heading text exactly as it appears — do not paraphrase or shorten
+- include the document title as the first entry at depth 0
+- include every structural heading level observed in the document
+
+Exclude: page headers/footers, author lines, journal/conference metadata, copyright notices, figure/table captions.\
+"""
+
 USER_PROMPT_PDF = "Produce the hierarchical tree of this document."
 
 
@@ -124,6 +154,43 @@ def run_pdf_mode(pdf_path: str) -> str:
         ],
     )
     return resp.choices[0].message.content.strip()
+
+
+def get_config_baseline(pdf_path: str) -> dict:
+    """Return a config dict (same shape as agent) by sending full PDF text to the LLM.
+
+    The LLM returns a flat JSON array of {text, depth} entries (one per heading).
+    These are converted to exact-match rules so build_tree can use them directly.
+    """
+    import json, re
+    from openai import OpenAI
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    print("[baseline] Extracting text from PDF...")
+    text = _extract_text(pdf_path)
+    user_prompt = USER_PROMPT_CONFIG.format(text=text)
+
+    print("[baseline] Asking GPT-4o-mini for heading list...")
+    resp = client.chat.completions.create(
+        model="gpt-4o-mini",
+        temperature=0,
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT_CONFIG},
+            {"role": "user", "content": user_prompt},
+        ],
+    )
+    raw = resp.choices[0].message.content.strip()
+    raw = re.sub(r"^```(?:json)?\n?", "", raw)
+    raw = re.sub(r"\n?```$", "", raw)
+    headings = json.loads(raw)  # list of {"text": ..., "depth": ...}
+
+    rules = [
+        {"pattern": h["text"], "type": "exact", "depth": h["depth"]}
+        for h in headings
+    ]
+    config = {"domain": "baseline (exact headings from LLM)", "rules": rules, "notes": ""}
+    print(f"[baseline] {len(rules)} headings identified")
+    return config
 
 
 def main():
